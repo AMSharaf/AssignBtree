@@ -1,7 +1,10 @@
 #include <iostream>
+#include <algorithm>
 #include <queue>
 #include <stack>
 using namespace std;
+
+
 
 
 template<typename type,int ord>
@@ -42,6 +45,8 @@ private:
             for (int i=0;i<ord+2;i++) childs[i]=nullptr;
         }
     };
+
+
     InternalNode *root=nullptr;
     int b=ord/2;
 public:
@@ -298,7 +303,6 @@ public:
         {
             while (i >= 0 && x->keys[i] > k)
             {
-                x->keys[i + 1] = x->keys[i];
                 i--;
             }
 
@@ -324,8 +328,137 @@ public:
     }
 
 
+    void del(Node*x,InternalNode*p,type k,int cn){
+        int i=x->num_keys-1;
+        if (x->is_leaf)
+        {
+            while (i >= 0 && x->keys[i] > k)
+                i--;
+            if (x->keys[i] == k) {
+                if (x->num_keys>b) {
+                    for (int j=i; j<x->num_keys-1; j++) {
+                        x->keys[j]=x->keys[j+1];
+                    }
+                    x->num_keys--;
+                    return;
+                }
+                else if (x->num_keys==b) {
+                    borrow(p,cn,k);
+                    del(p,nullptr,k,0);
+                    return;
+                }
+
+                return ;
+            }
+            return ;
+        }
+        else
+        {
+            InternalNode* p = (InternalNode*)x;
+
+            while (i >= 0 && p->keys[i] > k)
+                i--;
+            if (k<p->keys[i])
+                return del(p->childs[i],p,k,i);
+            else if (k>p->keys[i])
+                return del(p->childs[i+1],p,k,i+1);
+            else {
+                type tmp =getSuc(p->childs[i+1]);
+                p->keys[i]=tmp;
+                return del(p->childs[i+1],p,tmp,i+1);
+            }
+        }
+        return ;
+
+    }
+    void del(type k) {
+        del(root,nullptr,k,0);
+    }
 
 
+    void merge(InternalNode *p,int cn,int k) {
+        Node *x=p->childs[cn];
+        Node *y=nullptr;
+        if (cn!=p->num_keys&&k<p->childs[cn+1]->num_keys==b){
+
+            y=p->childs[cn+1];
+            x->keys[x->num_keys]=p->keys[cn];
+            x->num_keys++;
+            for (int j=0;j<x->num_keys;j++) {
+                x->keys[x->num_keys+j]=y->keys[j];
+            }
+            x->num_keys+=y->num_keys;
+            swap(p->childs[cn],p->childs[cn+1]);
+            delete y;
+        }
+        else if (cn>0&&p->childs[cn-1]->num_keys==b){
+            y=p->childs[cn-1];
+            y->keys[y->num_keys]=p->keys[cn-1];
+            y->num_keys++;
+            for (int j=0;j<y->num_keys;j++) {
+                y->keys[y->num_keys+j]=x->keys[j];
+            }
+            y->num_keys+=x->num_keys;
+            delete x;
+        }
+        for (int j=cn-1;j<=p->num_keys;j++)
+            p->keys[j]=p->keys[j+1];
+        for (int j=cn;j<=p->num_keys+1;j++)
+            p->childs[j]=p->childs[j+1];
+        p->childs[p->num_keys]=nullptr;
+        p->num_keys--;
+    }
+
+    void borrow(InternalNode *p,int cn,int k) {
+        Node *x=p->childs[cn];
+        Node *y=nullptr;
+        type tmp;
+        if (cn!=0) {//left
+            y=p->childs[cn-1];
+            if (y->num_keys>b) {
+                y->num_keys--;
+                tmp=y->keys[y->num_keys];
+                swap(tmp,p->keys[cn-1]);
+                //shift(x,0,x->num_keys,true);
+                x->num_keys;
+                x->keys[0]=tmp;
+                return;
+            }
+        }
+        if (cn!=p->num_keys) {//right
+            y=p->childs[cn+1];
+            if (y->num_keys>b) {
+                tmp=y->keys[0];
+                shift(y,0,y->num_keys,true);
+                y->num_keys--;
+                swap(tmp,p->keys[cn]);
+                x->keys[x->num_keys]=tmp;
+                x->num_keys++;
+                return;
+            }
+        }
+        merge(p,cn,k);
+
+    }
+
+    void shift(Node*x,int l,int r,bool isRight) {
+        if (isRight) {
+            for (int i=l;i<r;i++) {
+                x->keys[i]=x->keys[i+1];
+            }
+        }
+        else {
+            for (int i=r;i>l;i--) {
+                x->keys[i-1]=x->keys[i];
+            }
+        }
+
+    }
+    type getSuc(Node *x) {
+        if (x->is_leaf)return x->keys[0];
+        InternalNode* p=(InternalNode*)x;
+        return getSuc(p->childs[0]);
+    }
 };
 
 
@@ -354,8 +487,41 @@ int main() {
     T.InsertPlus('e');
     T.InsertPlus('g');
 
-    cout<<T.search('g')<<endl;
+
     T.Print2();
+    T.del('q');
+    T.Print2();
+
+    // T.del('h');
+    // T.del('g');
+    // T.Print2();
+    // T.del('n');
+    // T.del('m');
+    //
+    // T.Print2();
+    // T.del('b');
+    // T.del('c');
+    // T.del('d');
+    // T.Print2();
+    // cout<<endl;
+    // T.del('f');
+    // T.del('l');
+    // T.del('p');
+    // T.Print2();
+    // T.del('v');
+    // T.del('w');
+    // T.del('x');
+    // T.del('y');
+    // T.Print2();
+    // T.del('a');
+    // T.del('e');
+    // T.del('r');
+    // T.del('s');
+    // T.del('t');
+    // T.Print2();
+    // T.del('z');
+    // T.Print2();
+
 
 
 }
