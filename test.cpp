@@ -4,6 +4,8 @@
 using namespace std;
 
 
+
+
 template<typename type,int ord>
 class BTree
 {
@@ -42,6 +44,8 @@ private:
             for (int i=0;i<ord+2;i++) childs[i]=nullptr;
         }
     };
+
+
     InternalNode *root=nullptr;
     int b=ord/2;
 public:
@@ -298,7 +302,6 @@ public:
         {
             while (i >= 0 && x->keys[i] > k)
             {
-                x->keys[i + 1] = x->keys[i];
                 i--;
             }
 
@@ -324,7 +327,94 @@ public:
     }
 
 
+    pair<type,bool>* del(Node*x,InternalNode*p,type k,int cn){
+        int i=x->num_keys-1;
+        if (x->is_leaf)
+        {
+            while (i >= 0 && x->keys[i] > k)
+                i--;
+            pair<type,bool>* result = nullptr;
+            if (x->keys[i] == k) {
+                if (x->num_keys>b) {
+                    for (int j=i; j<x->num_keys-1; j++) {
+                        x->keys[j]=x->keys[j+1];
+                    }
+                    x->num_keys--;
+                }
+                else if (x->num_keys==b) {
+                    if (cn!=0&&cn!=p->num_keys) {
+                        if (p->childs[cn-1]->num_keys==b) merge(p,cn,false,k);
+                        else merge(p,cn,true,k);
+                    }
+                    else if (cn==0) {
+                        if (p->childs[cn+1]->num_keys==b) merge(p,cn,true,k);
 
+                    }
+                    else {
+                        if (p->childs[cn-1]->num_keys==b) merge(p,cn,false,k);
+                    }
+                    del(p,nullptr,k,0);
+                    return nullptr;
+
+                }
+                pair<Node*,bool>* result = new pair<Node*,bool>(x,true);
+                return result;
+            }
+            return nullptr;
+        }
+        else
+        {
+            InternalNode* p = (InternalNode*)x;
+
+            while (i >= 0 && p->keys[i] > k)
+                i--;
+            if (k<p->keys[i])
+                return del(p->childs[i],p,k,i);
+            else
+                return del(p->childs[i+1],p,k,i+1);
+        }
+        return nullptr;
+
+    }
+    void del(type k) {
+        del(root,nullptr,k,0);
+    }
+
+
+    void merge(InternalNode *p,int cn,bool rightdir,int k) {
+        Node *x=p->childs[cn];
+        Node *y=nullptr;
+        if (rightdir) {
+            y=p->childs[cn+1];
+            x->keys[x->num_keys]=p->keys[cn];
+            x->num_keys++;
+            for (int j=0;j<x->num_keys;j++) {
+                x->keys[x->num_keys+j]=y->keys[j];
+            }
+            x->num_keys+=y->num_keys;
+            swap(p->childs[cn],p->childs[cn+1]);
+            delete y;
+        }
+        else {
+            y=p->childs[cn-1];
+            y->keys[y->num_keys]=p->keys[cn-1];
+            y->num_keys++;
+            for (int j=0;j<y->num_keys;j++) {
+                y->keys[y->num_keys+j]=x->keys[j];
+            }
+            y->num_keys+=x->num_keys;
+            delete x;
+        }
+        for (int j=cn;j<p->num_keys;j++)
+            p->keys[j]=p->keys[j+1];
+        for (int j=cn;j<=p->num_keys+1;j++)
+            p->childs[j]=p->childs[j+1];
+        p->childs[p->num_keys]=nullptr;
+        p->num_keys--;
+    }
+    void shiftE(InternalNode *p,int cn,bool rightdir) {
+
+    }
 
 };
 
@@ -354,9 +444,18 @@ int main() {
     T.InsertPlus('e');
     T.InsertPlus('g');
 
-    cout<<T.search('g')<<endl;
     T.Print2();
+    T.del('g');
+    T.del('m');
+    T.del('n');
 
+
+    T.Print2();
+    T.del('v');
+    T.del('w');
+    T.del('x');
+    T.del('y');
+    T.Print2();
 
 }
 
