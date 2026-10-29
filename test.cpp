@@ -3,8 +3,7 @@
 #include <stack>
 using namespace std;
 
-
-template<typename type,int ord>
+template <typename type, int ord>
 class BTree
 {
 private:
@@ -12,53 +11,55 @@ private:
     {
     public:
         bool is_leaf;
-        int num_keys=0;
+        int num_keys = 0;
         // type* keys=nullptr;
-        type keys[ord+1];
-        explicit Node(bool is_leaf=false) : is_leaf(is_leaf)
+        type keys[ord + 1];
+        explicit Node(bool is_leaf = false) : is_leaf(is_leaf)
         {
-            //keys = new type[ord];
+            // keys = new type[ord];
         }
 
         ~Node()
         {
-           // delete[] keys;
+            // delete[] keys;
         }
-
     };
 
-    struct LeafNode:public Node
+    struct LeafNode : public Node
     {
-        explicit LeafNode(): Node(true)
-        {}
+        explicit LeafNode() : Node(true)
+        {
+        }
     };
-    class InternalNode:public Node
+    class InternalNode : public Node
     {
     public:
-        //Node **childs=new Node*[ord+1];
-        Node * childs[ord+2];
-        explicit InternalNode(bool isLeaf=false) : Node(isLeaf)
+        // Node **childs=new Node*[ord+1];
+        Node *childs[ord + 2];
+        explicit InternalNode(bool isLeaf = false) : Node(isLeaf)
         {
-            for (int i=0;i<ord+2;i++) childs[i]=nullptr;
+            for (int i = 0; i < ord + 2; i++)
+                childs[i] = nullptr;
         }
     };
-    InternalNode *root=nullptr;
-    int b=ord/2;
+    InternalNode *root = nullptr;
+    int b = ord / 2;
+
 public:
     BTree()
     {
-        root=new InternalNode(true);
+        root = new InternalNode(true);
     }
-    pair<type, Node*>* Split(Node* y)
+    pair<type, Node *> *Split(Node *y)
     {
         int mid = y->num_keys / 2;
-        Node* z = nullptr;
+        Node *z = nullptr;
 
         if (y->is_leaf != true)
         {
             z = new InternalNode();
-            InternalNode* p = (InternalNode*)z;
-            InternalNode* q = (InternalNode*)y;
+            InternalNode *p = (InternalNode *)z;
+            InternalNode *q = (InternalNode *)y;
 
             int rightKeys = y->num_keys - mid - 1;
 
@@ -79,10 +80,10 @@ public:
 
         y->num_keys = mid;
 
-        return new pair<type, Node*>(promotedKey, z);
+        return new pair<type, Node *>(promotedKey, z);
     }
 
-    pair<type, Node*>* InsertPlus(Node* x, type k)
+    pair<type, Node *> *InsertPlus(Node *x, type k)
     {
         int i = x->num_keys - 1;
 
@@ -99,14 +100,14 @@ public:
         }
         else
         {
-            InternalNode* p = (InternalNode*)x;
+            InternalNode *p = (InternalNode *)x;
 
             while (i >= 0 && p->keys[i] > k)
                 i--;
 
             i++;
 
-            pair<type, Node*>* result = InsertPlus(p->childs[i], k);
+            pair<type, Node *> *result = InsertPlus(p->childs[i], k);
 
             if (result != nullptr)
             {
@@ -132,11 +133,11 @@ public:
 
     void InsertPlus(type k)
     {
-        pair<type, Node*>* result = InsertPlus(root, k);
+        pair<type, Node *> *result = InsertPlus(root, k);
 
         if (result != nullptr)
         {
-            InternalNode* s = new InternalNode();
+            InternalNode *s = new InternalNode();
 
             s->childs[0] = root;
             s->childs[1] = result->second;
@@ -149,95 +150,109 @@ public:
         }
     }
 
-
-    Node* SplitChild(InternalNode* x,int i)
+    Node *SplitChild(InternalNode *x, int i)
     {
-        if (x==nullptr||x->childs[i]==nullptr)return nullptr;
-        Node *y=x->childs[i];
-        Node *z=nullptr;
-        if (y->is_leaf!=true)
+        if (x == nullptr || x->childs[i] == nullptr)
+            return nullptr;
+        Node *y = x->childs[i];
+        Node *z = nullptr;
+        if (y->is_leaf != true)
         {
-            z=new InternalNode();
-            InternalNode *p=(InternalNode*)z;
-            InternalNode *q=(InternalNode*)y;
-            for (int j=0;j<=b;j++)
-                p->childs[j]=q->childs[b+j+1];
+            z = new InternalNode();
+            InternalNode *p = (InternalNode *)z;
+            InternalNode *q = (InternalNode *)y;
+            for (int j = 0; j <= b; j++)
+                p->childs[j] = q->childs[b + j + 1];
         }
         else
-            z=new LeafNode();
-        for (int j=0;j<b;j++)
-            z->keys[j]=y->keys[b+j+1];
-        z->num_keys=y->num_keys=b;
-        for (int j=x->num_keys;j>i;j--) {
-            x->keys[j]=x->keys[j-1];
-            x->childs[j+1]=x->childs[j];
+            z = new LeafNode();
+        for (int j = 0; j < b; j++)
+            z->keys[j] = y->keys[b + j + 1];
+        z->num_keys = y->num_keys = b;
+        for (int j = x->num_keys; j > i; j--)
+        {
+            x->keys[j] = x->keys[j - 1];
+            x->childs[j + 1] = x->childs[j];
         }
-        x->childs[i+1]=z;
-        x->keys[i]=y->keys[b];
+        x->childs[i + 1] = z;
+        x->keys[i] = y->keys[b];
         x->num_keys++;
         return x;
     }
-    Node* SplitRoot() {
-        InternalNode *s=new InternalNode();
-        s->childs[0]=root;
-        root=s;
-        return SplitChild(s,0);
-
+    Node *SplitRoot()
+    {
+        InternalNode *s = new InternalNode();
+        s->childs[0] = root;
+        root = s;
+        return SplitChild(s, 0);
     }
 
-    void Insert(type k) {
-        Insert(root,k);
+    void Insert(type k)
+    {
+        Insert(root, k);
     }
-    void Insert(Node* x,type k) {
-        if (x->num_keys==ord) {
-            x=SplitRoot();
+    void Insert(Node *x, type k)
+    {
+        if (x->num_keys == ord)
+        {
+            x = SplitRoot();
         }
-        int i=x->num_keys-1;
-        if (x->is_leaf) {
-            while (i>=0&&x->keys[i]>k) {
-                x->keys[i+1]=x->keys[i];
+        int i = x->num_keys - 1;
+        if (x->is_leaf)
+        {
+            while (i >= 0 && x->keys[i] > k)
+            {
+                x->keys[i + 1] = x->keys[i];
                 i--;
             }
-            x->keys[++i]=k;
+            x->keys[++i] = k;
             x->num_keys++;
         }
-        else {
-            InternalNode *p=(InternalNode*)x;
-            while (i>=0&&p->keys[i]>k) i--;
+        else
+        {
+            InternalNode *p = (InternalNode *)x;
+            while (i >= 0 && p->keys[i] > k)
+                i--;
             i++;
-            if (p->childs[i]->num_keys==ord) {
-                SplitChild(p,i);
-                if (p->keys[i]<k)i++;
+            if (p->childs[i]->num_keys == ord)
+            {
+                SplitChild(p, i);
+                if (p->keys[i] < k)
+                    i++;
             }
-            Insert(p->childs[i],k);
+            Insert(p->childs[i], k);
         }
-
     }
 
-
-    void Print() {
-        queue<Node*>s;
+    void Print()
+    {
+        queue<Node *> s;
         s.push(root);
-        while (!s.empty()) {
-            cout<<"[";
-            InternalNode *p=(InternalNode*)s.front();
-            if (!p->is_leaf||p==root) {
-                for (int i=0;i<p->num_keys;i++) {
-                    cout<<p->keys[i]<<' ';
+        while (!s.empty())
+        {
+            cout << "[";
+            InternalNode *p = (InternalNode *)s.front();
+            if (!p->is_leaf || p == root)
+            {
+                for (int i = 0; i < p->num_keys; i++)
+                {
+                    cout << p->keys[i] << ' ';
                     s.push(p->childs[i]);
                 }
                 s.push(p->childs[p->num_keys]);
             }
-            else {
-                for (int i=0;i<s.front()->num_keys;i++)cout<<s.front()->keys[i]<<' ';
+            else
+            {
+                for (int i = 0; i < s.front()->num_keys; i++)
+                    cout << s.front()->keys[i] << ' ';
             }
             s.pop();
-            cout<<"]"<<endl;
+            cout << "]" << endl;
         }
     }
     void Print2()
     {
-        queue<Node*> s;
+        queue<Node *> s;
         s.push(root);
 
         while (!s.empty())
@@ -246,7 +261,7 @@ public:
 
             while (levelSize > 0)
             {
-                Node* current = s.front();
+                Node *current = s.front();
                 s.pop();
 
                 cout << "[";
@@ -263,7 +278,7 @@ public:
 
                 if (!current->is_leaf)
                 {
-                    InternalNode* p = (InternalNode*)current;
+                    InternalNode *p = (InternalNode *)current;
 
                     for (int i = 0; i <= current->num_keys; i++)
                     {
@@ -283,54 +298,54 @@ public:
     //
     // }
 
-    bool search(type k) {
-         pair<Node*,bool> * result=search(root,k);
-        if (result!=nullptr) {
-            cout<<"it is here"<<endl;
+    bool search(type k)
+    {
+        pair<Node *, bool> *result = search(root, k);
+        if (result != nullptr)
+        {
+            cout << "it is here" << endl;
             return true;
         }
-        cout<<"it is not here"<<endl;
+        cout << "it is not here" << endl;
         return false;
     }
-    pair<Node*,bool>* search(Node*x,type k) {
-        int i=x->num_keys-1;
+
+    pair<Node *, bool> *search(Node *x, type k)
+    {
+        int i = x->num_keys - 1;
         if (x->is_leaf)
         {
             while (i >= 0 && x->keys[i] > k)
             {
-                x->keys[i + 1] = x->keys[i];
                 i--;
             }
 
-            if (x->keys[i+1] == k) {
-                pair<Node*,bool>* result = new pair<Node*,bool>(x,true);
+            if (x->keys[i] == k)
+            {
+                pair<Node *, bool> *result = new pair<Node *, bool>(x, true);
                 return result;
             }
             return nullptr;
         }
         else
         {
-            InternalNode* p = (InternalNode*)x;
+            InternalNode *p = (InternalNode *)x;
 
             while (i >= 0 && p->keys[i] > k)
                 i--;
-            pair<Node*,bool>* result =new pair<Node*,bool>(p,true);
+            pair<Node *, bool> *result = new pair<Node *, bool>(p, true);
 
-            if (p->keys[i] == k)return result;
-            return search(p->childs[i+1],k);
+            if (p->keys[i] == k)
+                return result;
+            return search(p->childs[i + 1], k);
         }
         return nullptr;
-
     }
-
-
-
-
 };
 
-
-int main() {
-    BTree<char,5>T;
+int main()
+{
+    BTree<char, 5> T;
     T.InsertPlus('f');
     T.InsertPlus('s');
     T.InsertPlus('q');
@@ -354,9 +369,6 @@ int main() {
     T.InsertPlus('e');
     T.InsertPlus('g');
 
-    cout<<T.search('g')<<endl;
+    cout << T.search(',') << endl;
     T.Print2();
-
-
 }
-
