@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <queue>
 #include <stack>
 using namespace std;
@@ -47,7 +48,7 @@ private:
 
 
     InternalNode *root=nullptr;
-    int b=ord/2;
+    int b=(ord)/2;
 public:
     BTree()
     {
@@ -86,12 +87,15 @@ public:
         return new pair<type, Node*>(promotedKey, z);
     }
 
-    pair<type, Node*>* InsertPlus(Node* x, type k)
+    pair<type, Node*>* Insert(Node* x, type k)
     {
         int i = x->num_keys - 1;
 
         if (x->is_leaf)
         {
+            for (int j=0;j<x->num_keys;j++) {
+                if (x->keys[j] == k)return nullptr;
+            }
             while (i >= 0 && x->keys[i] > k)
             {
                 x->keys[i + 1] = x->keys[i];
@@ -110,7 +114,7 @@ public:
 
             i++;
 
-            pair<type, Node*>* result = InsertPlus(p->childs[i], k);
+            pair<type, Node*>* result = Insert(p->childs[i], k);
 
             if (result != nullptr)
             {
@@ -134,9 +138,9 @@ public:
         return nullptr;
     }
 
-    void InsertPlus(type k)
+    void Insert(type k)
     {
-        pair<type, Node*>* result = InsertPlus(root, k);
+        pair<type, Node*>* result = Insert(root, k);
 
         if (result != nullptr)
         {
@@ -185,62 +189,17 @@ public:
         InternalNode *s=new InternalNode();
         s->childs[0]=root;
         root=s;
+        root->is_leaf=false;
         return SplitChild(s,0);
 
     }
 
-    void Insert(type k) {
-        Insert(root,k);
-    }
-    void Insert(Node* x,type k) {
-        if (x->num_keys==ord) {
-            x=SplitRoot();
-        }
-        int i=x->num_keys-1;
-        if (x->is_leaf) {
-            while (i>=0&&x->keys[i]>k) {
-                x->keys[i+1]=x->keys[i];
-                i--;
-            }
-            x->keys[++i]=k;
-            x->num_keys++;
-        }
-        else {
-            InternalNode *p=(InternalNode*)x;
-            while (i>=0&&p->keys[i]>k) i--;
-            i++;
-            if (p->childs[i]->num_keys==ord) {
-                SplitChild(p,i);
-                if (p->keys[i]<k)i++;
-            }
-            Insert(p->childs[i],k);
-        }
-
-    }
-
-
-    void Print() {
-        queue<Node*>s;
-        s.push(root);
-        while (!s.empty()) {
-            cout<<"[";
-            InternalNode *p=(InternalNode*)s.front();
-            if (!p->is_leaf||p==root) {
-                for (int i=0;i<p->num_keys;i++) {
-                    cout<<p->keys[i]<<' ';
-                    s.push(p->childs[i]);
-                }
-                s.push(p->childs[p->num_keys]);
-            }
-            else {
-                for (int i=0;i<s.front()->num_keys;i++)cout<<s.front()->keys[i]<<' ';
-            }
-            s.pop();
-            cout<<"]"<<endl;
-        }
-    }
-    void Print2()
+    void Print()
     {
+        if (root==nullptr) {
+            cout<<"Empty Tree"<<endl;
+            return;
+        }
         queue<Node*> s;
         s.push(root);
 
@@ -281,8 +240,23 @@ public:
 
             cout << endl;
         }
+        cout<<endl;
     }
-
+    void InOrder(Node* x) {
+        InternalNode *xc=nullptr;
+        if (!x->is_leaf)xc=(InternalNode*)x;
+        for (int i=0;i<=x->num_keys;i++) {
+            if (!x->is_leaf) {
+                InOrder(xc->childs[i]);
+            }
+            if (i!=x->num_keys)
+                cout<<x->keys[i]<<" ";
+        }
+    }
+    void InOrder() {
+        InOrder(root);
+        cout<<endl;
+    }
     // type Delete(type k,InternalNode*p=nullptr,Node *x) {
     //
     // }
@@ -291,12 +265,17 @@ public:
          pair<Node*,bool> * result=search(root,k);
         if (result!=nullptr) {
             cout<<"it is here"<<endl;
+            delete result;
             return true;
         }
         cout<<"it is not here"<<endl;
+        delete result;
         return false;
     }
     pair<Node*,bool>* search(Node*x,type k) {
+        if (x==nullptr) {
+            return nullptr;
+        }
         int i=x->num_keys-1;
         if (x->is_leaf)
         {
@@ -305,7 +284,7 @@ public:
                 i--;
             }
 
-            if (x->keys[i+1] == k) {
+            if (x->keys[i] == k) {
                 pair<Node*,bool>* result = new pair<Node*,bool>(x,true);
                 return result;
             }
@@ -322,140 +301,252 @@ public:
             if (p->keys[i] == k)return result;
             return search(p->childs[i+1],k);
         }
-        return nullptr;
-
     }
 
 
-    pair<type,bool>* del(Node*x,InternalNode*p,type k,int cn){
+    void del(Node*x,InternalNode*p,type k,int cn){
+        if (x==nullptr) return;
         int i=x->num_keys-1;
         if (x->is_leaf)
         {
             while (i >= 0 && x->keys[i] > k)
                 i--;
-            pair<type,bool>* result = nullptr;
             if (x->keys[i] == k) {
-                if (x->num_keys>b) {
-                    for (int j=i; j<x->num_keys-1; j++) {
-                        x->keys[j]=x->keys[j+1];
-                    }
-                    x->num_keys--;
+                for (int j=i; j<x->num_keys-1; j++) {
+                    x->keys[j]=x->keys[j+1];
                 }
-                else if (x->num_keys==b) {
-                    if (cn!=0&&cn!=p->num_keys) {
-                        if (p->childs[cn-1]->num_keys==b) merge(p,cn,false,k);
-                        else merge(p,cn,true,k);
-                    }
-                    else if (cn==0) {
-                        if (p->childs[cn+1]->num_keys==b) merge(p,cn,true,k);
-
-                    }
-                    else {
-                        if (p->childs[cn-1]->num_keys==b) merge(p,cn,false,k);
-                    }
-                    del(p,nullptr,k,0);
-                    return nullptr;
-
+                x->num_keys--;
+                if (x->num_keys<b) {
+                    return fixUnderflow(p,cn);
                 }
-                pair<Node*,bool>* result = new pair<Node*,bool>(x,true);
-                return result;
+                return ;
             }
-            return nullptr;
+            return ;
         }
         else
         {
-            InternalNode* p = (InternalNode*)x;
+            InternalNode* q = (InternalNode*)x;
 
-            while (i >= 0 && p->keys[i] > k)
+            while (i >= 0 && q->keys[i] > k)
                 i--;
-            if (k<p->keys[i])
-                return del(p->childs[i],p,k,i);
-            else
-                return del(p->childs[i+1],p,k,i+1);
+            if (k<q->keys[i])
+                 del(q->childs[i],q,k,i);
+            else if (k>q->keys[i])
+                 del(q->childs[i+1],q,k,i+1);
+            else {
+                type tmp =getSuc(q->childs[i+1]);
+                q->keys[i]=tmp;
+                 del(q->childs[i+1],q,tmp,i+1);
+            }
+            if (x->num_keys<b) {
+                return fixUnderflow(p,cn);
+            }
         }
-        return nullptr;
+        return ;
 
     }
     void del(type k) {
+
         del(root,nullptr,k,0);
+        if (root->num_keys == 0) {
+            if (!root->is_leaf) {
+                Node *x=root->childs[0];
+                InternalNode* p = new InternalNode(x->is_leaf);
+                if (!x->is_leaf) {
+                    InternalNode *xc=(InternalNode*)x;
+                    for (int i=0;i<=x->num_keys;i++) {
+                        p->childs[i]=xc->childs[i];
+                    }
+                }
+                for (int i=0;i<x->num_keys;i++) {
+                    p->keys[i]=x->keys[i];
+                }
+
+                p->num_keys=x->num_keys;
+                delete x,root;
+                root=p;
+            }
+            else {
+                delete root;
+                root=nullptr;
+            }
+        }
     }
 
 
-    void merge(InternalNode *p,int cn,bool rightdir,int k) {
+    void merge(InternalNode *p,int cn) {
         Node *x=p->childs[cn];
         Node *y=nullptr;
-        if (rightdir) {
-            y=p->childs[cn+1];
-            x->keys[x->num_keys]=p->keys[cn];
-            x->num_keys++;
-            for (int j=0;j<x->num_keys;j++) {
-                x->keys[x->num_keys+j]=y->keys[j];
-            }
-            x->num_keys+=y->num_keys;
-            swap(p->childs[cn],p->childs[cn+1]);
-            delete y;
-        }
-        else {
+        InternalNode *xc;
+        InternalNode *yc;
+
+        if (cn>0) {
             y=p->childs[cn-1];
-            y->keys[y->num_keys]=p->keys[cn-1];
-            y->num_keys++;
-            for (int j=0;j<y->num_keys;j++) {
-                y->keys[y->num_keys+j]=x->keys[j];
+            if (!x->is_leaf) {
+                xc=(InternalNode*)x;
+                yc=(InternalNode*)y;
+            }
+
+            if (!x->is_leaf) {
+                for (int i=0;i<=x->num_keys;i++)
+                    yc->childs[y->num_keys+i+1]=xc->childs[i];
+            }
+            y->keys[y->num_keys++]=p->keys[cn-1];
+            for (int i=0;i<x->num_keys;i++) {
+                y->keys[y->num_keys+i]=x->keys[i];
             }
             y->num_keys+=x->num_keys;
             delete x;
+            for (int i=cn;i<p->num_keys;i++) {
+                p->keys[i-1]=p->keys[i];
+            }
+            for (int i=cn;i<=p->num_keys;i++) {
+                p->childs[i]=p->childs[i+1];
+            }
+            p->num_keys--;
         }
-        for (int j=cn;j<p->num_keys;j++)
-            p->keys[j]=p->keys[j+1];
-        for (int j=cn;j<=p->num_keys+1;j++)
-            p->childs[j]=p->childs[j+1];
-        p->childs[p->num_keys]=nullptr;
-        p->num_keys--;
+        else {
+            y=p->childs[cn+1];
+            if (!x->is_leaf) {
+                xc=(InternalNode*)x;
+                yc=(InternalNode*)y;
+            }
+            x->keys[x->num_keys++]=p->keys[cn];
+            for (int i=0;i<y->num_keys;i++) {
+                x->keys[x->num_keys+i]=y->keys[i];
+            }
+            if (!y->is_leaf) {
+                for (int i=0;i<=y->num_keys;i++)
+                    xc->childs[x->num_keys+i+1]=yc->childs[i];
+            }
+            x->num_keys+=y->num_keys;
+            delete y;
+            for (int i=cn;i<p->num_keys;i++) {
+                p->keys[i]=p->keys[i+1];
+            }
+            for (int i=cn+1;i<=p->num_keys;i++) {
+                p->childs[i]=p->childs[i+1];
+            }
+            p->num_keys--;
+
+        }
     }
-    void shiftE(InternalNode *p,int cn,bool rightdir) {
+
+    void BorrowRight(InternalNode *p,int cn) {
+        Node *x=p->childs[cn];
+        Node *y=p->childs[cn+1];
+        type tmp=p->keys[cn];
+        x->keys[x->num_keys++]=tmp;
+        p->keys[cn]=y->keys[0];
+        for (int i=0;i<y->num_keys;i++) {
+            y->keys[i]=y->keys[i+1];
+        }
+        y->num_keys--;
+    }
+    void BorrowLeft(InternalNode *p,int cn) {
+        Node *x=p->childs[cn];
+        Node *y=p->childs[cn-1];
+        type tmp=y->keys[--y->num_keys];
+
+        swap(p->keys[cn-1],tmp);
+        for (int i=x->num_keys;i>=0;i--) {
+            x->keys[i+1]=x->keys[i];
+        }
+        x->keys[0]=tmp;
+        x->num_keys++;
 
     }
 
+    type getSuc(Node *x) {
+        if (x->is_leaf)return x->keys[0];
+        InternalNode* p=(InternalNode*)x;
+        return getSuc(p->childs[0]);
+    }
+    void fixUnderflow(InternalNode *p,int cn) {
+        if (p==nullptr) return;
+        if (cn!=0) {
+            if (p->childs[cn-1]->num_keys>b) {
+                BorrowLeft(p,cn);
+                return;
+            }
+        }
+        if (cn!=p->num_keys) {
+            if (p->childs[cn+1]->num_keys>b) {
+                BorrowRight(p,cn);
+                return;
+            }
+        }
+        merge(p,cn);
+    }
 };
 
 
 int main() {
-    BTree<char,5>T;
-    T.InsertPlus('f');
-    T.InsertPlus('s');
-    T.InsertPlus('q');
-    T.InsertPlus('k');
-    T.InsertPlus('c');
-    T.InsertPlus('l');
-    T.InsertPlus('h');
-    T.InsertPlus('t');
-    T.InsertPlus('v');
-    T.InsertPlus('w');
-    T.InsertPlus('m');
-    T.InsertPlus('r');
-    T.InsertPlus('n');
-    T.InsertPlus('p');
-    T.InsertPlus('a');
-    T.InsertPlus('b');
-    T.InsertPlus('x');
-    T.InsertPlus('y');
-    T.InsertPlus('d');
-    T.InsertPlus('z');
-    T.InsertPlus('e');
-    T.InsertPlus('g');
+    BTree<char,4>T;
+    T.Insert('f');
+    T.Insert('s');
+    T.Insert('q');
+    T.Insert('k');
+    T.Insert('c');
+    T.Insert('l');
+    T.Insert('h');
+    T.Insert('t');
+    T.Insert('v');
+    T.Insert('w');
+    T.Insert('m');
+    T.Insert('r');
+    T.Insert('n');
+    T.Insert('p');
+    T.Insert('a');
+    T.Insert('b');
+    T.Insert('x');
+    T.Insert('y');
+    T.Insert('d');
+    T.Insert('z');
+    T.Insert('e');
+    T.Insert('g');
+    T.Insert('g');
+    T.Insert('g');
 
-    T.Print2();
+    T.Print();
+    T.del('h');
     T.del('g');
-    T.del('m');
+    T.Print();
     T.del('n');
+    T.Print();
+    T.del('m');
+    T.Print();
+    T.del('s');
+    T.Print();
+    T.del('q');
+    T.Print();
+    T.del('t');
+    T.Print();
 
-
-    T.Print2();
+    T.Print();
+    T.del('b');
+    T.del('c');
+    T.del('d');
+    T.Print();
+    cout<<endl;
+    T.del('f');
+    T.del('l');
+    T.del('p');
+    T.Print();
     T.del('v');
     T.del('w');
     T.del('x');
     T.del('y');
-    T.Print2();
-
+    T.Print();
+    T.del('a');
+    T.del('e');
+    T.del('r');
+    T.del('s');
+    T.del('t');
+    T.Print();
+    T.del('z');
+    T.Print();
+    T.del('k');
+    T.Print();
+    return 0;
 }
-
